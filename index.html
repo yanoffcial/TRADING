@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ForexAI Pro — Trading Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<style>
+:root{
+  --ink:#080b10;
+  --panel:#0e131b;
+  --panel-2:#131a24;
+  --glass:rgba(19,26,36,0.72);
+  --border:rgba(212,165,55,0.14);
+  --gold:#d4a537;
+  --gold-bright:#f0c14b;
+  --buy:#26a69a;
+  --sell:#ef5350;
+  --text:#e8eaed;
+  --muted:#7c8798;
+  --muted-2:#4f5866;
+  --disp:'Space Grotesk',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --body:'Inter',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:
+    radial-gradient(1200px 600px at 100% -10%, rgba(212,165,55,0.06), transparent 60%),
+    radial-gradient(1000px 500px at -10% 110%, rgba(38,166,154,0.05), transparent 60%),
+    var(--ink);
+  color:var(--text);
+  font-family:var(--body);
+  overflow:hidden;
+}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:rgba(212,165,55,0.2);border-radius:8px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(212,165,55,0.35);}
+a{color:inherit;}
+button{font-family:inherit;cursor:pointer;}
+:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important;transition-duration:0.01ms !important;}}
+
+/* ---------- Layout shell ---------- */
+.app{display:grid;grid-template-columns:280px 1fr;height:100vh;}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:280px;z-index:60;transform:translateX(-100%);transition:transform .3s ease;}
+  .sidebar.open{transform:translateX(0);}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:55;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .scrim.show{opacity:1;pointer-events:auto;}
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  background:linear-gradient(180deg, var(--panel), var(--ink));
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  height:100vh;overflow:hidden;
+}
+.brand{
+  padding:20px 18px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.brand .mark{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--gold),#8a6a1f);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-weight:700;color:#0a0d12;font-size:16px;
+  box-shadow:0 0 18px rgba(212,165,55,0.35);
+}
+.brand .name{font-family:var(--disp);font-weight:700;font-size:16.5px;letter-spacing:0.3px;}
+.brand .name span{color:var(--gold-bright);}
+.brand .tag{font-size:10.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+
+.greet{padding:14px 18px;border-bottom:1px solid var(--border);}
+.greet .hello{font-size:12.5px;color:var(--muted);}
+.greet .uname{font-family:var(--disp);font-weight:600;font-size:15px;margin-top:2px;display:flex;align-items:center;gap:8px;}
+.greet .uname .dot{width:7px;height:7px;border-radius:50%;background:var(--buy);box-shadow:0 0 8px var(--buy);}
+
+.newchat-btn{
+  margin:12px 18px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+  background:var(--panel-2);color:var(--text);font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:8px;transition:.2s;
+}
+.newchat-btn:hover{border-color:var(--gold);color:var(--gold-bright);}
+
+.side-section{padding:0 18px;margin-top:6px;}
+.side-label{font-size:10.5px;color:var(--muted-2);text-transform:uppercase;letter-spacing:1.3px;margin:14px 0 8px;font-weight:600;}
+
+.pairs-strip{display:flex;flex-direction:column;gap:5px;max-height:150px;overflow-y:auto;padding-right:2px;}
+
+.featured-strip{display:flex;flex-direction:column;gap:6px;}
+.featured-card{
+  background:linear-gradient(135deg, rgba(212,165,55,0.1), var(--panel-2));
+  border:1px solid rgba(212,165,55,0.3);border-radius:11px;padding:9px 11px;cursor:pointer;transition:.15s;
+}
+.featured-card:hover{border-color:var(--gold);transform:translateY(-1px);}
+.featured-card .frow1{display:flex;justify-content:space-between;align-items:center;}
+.featured-card .fsym{font-family:var(--disp);font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:5px;}
+.featured-card .fsym .livedot{width:6px;height:6px;border-radius:50%;background:var(--buy);box-shadow:0 0 6px var(--buy);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.featured-card .fprice{font-family:var(--mono);font-size:14px;font-weight:700;}
+.featured-card .frow2{display:flex;justify-content:space-between;margin-top:3px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2);}
+.pair-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12px;padding:5px 8px;border-radius:7px;transition:.15s;cursor:pointer;}
+.pair-row:hover{background:rgba(212,165,55,0.08);}
+.pair-row .sym{color:var(--text);font-weight:600;}
+.pair-row .chg{font-weight:600;}
+.chg.up{color:var(--buy);}
+.chg.down{color:var(--sell);}
+
+.chat-history{flex:1;overflow-y:auto;padding:0 12px 12px;}
+.hist-item{
+  padding:9px 10px;border-radius:9px;font-size:12.5px;color:var(--muted);
+  display:flex;justify-content:space-between;align-items:center;gap:6px;
+  cursor:pointer;transition:.15s;margin-bottom:2px;
+}
+.hist-item:hover{background:var(--panel-2);color:var(--text);}
+.hist-item.active{background:rgba(212,165,55,0.1);color:var(--gold-bright);border:1px solid var(--border);}
+.hist-item .htitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+.hist-item .hdel{opacity:0;color:var(--muted-2);font-size:11px;}
+.hist-item:hover .hdel{opacity:1;}
+.hist-item .hdel:hover{color:var(--sell);}
+
+.tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 18px 16px;}
+.tool-btn{
+  background:var(--panel-2);border:1px solid var(--border);border-radius:10px;
+  padding:9px 6px;text-align:center;font-size:11px;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:5px;transition:.15s;min-height:56px;justify-content:center;
+}
+.tool-btn i{font-size:14px;color:var(--gold);}
+.tool-btn:hover{border-color:var(--gold);color:var(--text);transform:translateY(-1px);}
+
+.side-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.side-footer button{
+  flex:1;background:var(--panel-2);border:1px solid var(--border);border-radius:9px;color:var(--muted);
+  padding:8px;font-size:11.5px;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;
+}
+.side-footer button:hover{color:var(--gold-bright);border-color:var(--gold);}
+
+/* ---------- Main ---------- */
+.main{display:flex;flex-direction:column;height:100vh;overflow:hidden;position:relative;}
+.topbar{
+  display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--border);
+  background:var(--glass);backdrop-filter:blur(14px);z-index:5;
+}
+.burger{display:none;background:none;border:none;color:var(--text);font-size:18px;}
+@media (max-width:900px){.burger{display:block;}}
+.api-status{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);padding:6px 11px;border:1px solid var(--border);border-radius:20px;background:var(--panel-2);}
+.api-status .adot{width:7px;height:7px;border-radius:50%;background:var(--muted-2);}
+.api-status.on .adot{background:var(--buy);box-shadow:0 0 8px var(--buy);}
+.api-status.off .adot{background:var(--sell);}
+
+.ticker-wrap{flex:1;overflow:hidden;position:relative;height:26px;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);}
+.ticker-track{display:flex;gap:28px;position:absolute;white-space:nowrap;animation:scrollTicker 38s linear infinite;}
+@keyframes scrollTicker{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.tick{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;}
+.tick b{color:var(--text);}
+
+.settings-btn{background:var(--panel-2);border:1px solid var(--border);border-radius:9px;color:var(--muted);width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.settings-btn:hover{color:var(--gold-bright);border-color:var(--gold);}
+
+/* ---------- Chat area ---------- */
+.chat-area{flex:1;overflow-y:auto;padding:22px 0 10px;}
+.chat-inner{max-width:820px;margin:0 auto;padding:0 20px;display:flex;flex-direction:column;gap:18px;}
+
+.empty-state{max-width:640px;margin:6vh auto;text-align:center;padding:0 20px;}
+.empty-state .mark-lg{
+  width:64px;height:64px;border-radius:16px;margin:0 auto 18px;
+  background:linear-gradient(135deg,var(--gold),#8a6a1f);
+  display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;font-size:26px;color:#0a0d12;
+  box-shadow:0 0 30px rgba(212,165,55,0.3);
+}
+.empty-state h1{font-family:var(--disp);font-weight:700;font-size:26px;margin:0 0 8px;}
+.empty-state h1 span{color:var(--gold-bright);}
+.empty-state p{color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 22px;}
+.suggest-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media (max-width:600px){.suggest-grid{grid-template-columns:1fr;}}
+.suggest-card{
+  background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:13px 14px;text-align:left;
+  font-size:12.5px;color:var(--muted);transition:.15s;
+}
+.suggest-card b{display:block;color:var(--text);font-size:13px;margin-bottom:3px;font-family:var(--disp);}
+.suggest-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+
+.msg{display:flex;gap:12px;max-width:100%;}
+.msg.user{flex-direction:row-reverse;}
+.avatar{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.avatar.ai{background:linear-gradient(135deg,var(--gold),#8a6a1f);color:#0a0d12;}
+.avatar.me{background:var(--panel-2);border:1px solid var(--border);color:var(--muted);}
+.bubble{
+  background:var(--panel-2);border:1px solid var(--border);border-radius:14px;padding:13px 16px;
+  font-size:14px;line-height:1.65;max-width:78%;overflow-wrap:break-word;
+}
+.msg.user .bubble{background:rgba(212,165,55,0.08);border-color:rgba(212,165,55,0.25);}
+.bubble img.attach{max-width:220px;border-radius:10px;display:block;margin-bottom:8px;border:1px solid var(--border);}
+.bubble p{margin:0 0 8px;}
+.bubble p:last-child{margin-bottom:0;}
+.bubble h1,.bubble h2,.bubble h3{font-family:var(--disp);color:var(--gold-bright);margin:12px 0 6px;font-size:15px;}
+.bubble strong{color:var(--text);}
+.bubble ul,.bubble ol{margin:6px 0;padding-left:20px;}
+.bubble code{background:rgba(0,0,0,0.35);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:12.5px;}
+.bubble table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12.5px;}
+.bubble th,.bubble td{border:1px solid var(--border);padding:5px 8px;text-align:left;}
+.bubble th{color:var(--gold-bright);font-family:var(--disp);font-weight:600;}
+.thinking{display:flex;gap:5px;padding:6px 2px;}
+.thinking span{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:bounce 1.2s infinite;}
+.thinking span:nth-child(2){animation-delay:.15s;}
+.thinking span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-5px);opacity:1;}}
+
+/* candle chart card */
+.chart-card{background:var(--panel-2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-top:8px;}
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;}
+.chart-head .sym{font-family:var(--disp);font-weight:700;font-size:15px;}
+.chart-head .price{font-family:var(--mono);font-size:16px;font-weight:600;}
+.chart-head .price.up{color:var(--buy);}
+.chart-head .price.down{color:var(--sell);}
+canvas.candles{width:100%;height:220px;display:block;border-radius:8px;}
+.chart-foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted-2);margin-top:6px;font-family:var(--mono);}
+
+/* signal card */
+.signal-card{border-radius:14px;margin-top:10px;overflow:hidden;border:1px solid var(--border);}
+.signal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-family:var(--disp);font-weight:700;font-size:15px;}
+.signal-head.buy{background:linear-gradient(135deg,rgba(38,166,154,0.22),rgba(38,166,154,0.06));color:var(--buy);}
+.signal-head.sell{background:linear-gradient(135deg,rgba(239,83,80,0.22),rgba(239,83,80,0.06));color:var(--sell);}
+.signal-head .badge{font-size:12px;padding:4px 12px;border-radius:20px;font-family:var(--mono);letter-spacing:1px;}
+.signal-head.buy .badge{background:var(--buy);color:#04201d;}
+.signal-head.sell .badge{background:var(--sell);color:#2a0a09;}
+.signal-body{background:var(--panel-2);padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;}
+.signal-field{font-family:var(--mono);}
+.signal-field .slabel{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.signal-field .sval{font-size:15px;font-weight:700;color:var(--text);}
+.signal-field.full{grid-column:1/-1;}
+.signal-field .conf-Tinggi{color:var(--buy);}
+.signal-field .conf-Sedang{color:var(--gold-bright);}
+.signal-field .conf-Rendah{color:var(--sell);}
+
+/* ---------- Input bar ---------- */
+.input-zone{padding:12px 20px 18px;border-top:1px solid var(--border);background:var(--glass);backdrop-filter:blur(14px);}
+.input-inner{max-width:820px;margin:0 auto;}
+.preview-row{display:flex;gap:8px;margin-bottom:8px;}
+.preview-thumb{position:relative;width:56px;height:56px;border-radius:9px;overflow:hidden;border:1px solid var(--border);}
+.preview-thumb img{width:100%;height:100%;object-fit:cover;}
+.preview-thumb .rm{position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;}
+.input-bar{
+  display:flex;align-items:flex-end;gap:8px;background:var(--panel-2);border:1px solid var(--border);
+  border-radius:16px;padding:8px 8px 8px 14px;transition:.15s;
+}
+.input-bar:focus-within{border-color:var(--gold);}
+.input-bar textarea{
+  flex:1;background:none;border:none;color:var(--text);font-size:14px;font-family:var(--body);
+  resize:none;max-height:120px;min-height:22px;padding:8px 0;line-height:1.5;
+}
+.input-bar textarea:focus{outline:none;}
+.input-bar textarea::placeholder{color:var(--muted-2);}
+.icon-btn{
+  width:40px;height:40px;min-width:40px;border-radius:11px;border:none;background:var(--panel);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.icon-btn:hover{color:var(--gold-bright);}
+.send-btn{background:linear-gradient(135deg,var(--gold),#b3861f);color:#0a0d12;}
+.send-btn:hover{filter:brightness(1.1);}
+.send-btn:disabled{opacity:.4;filter:none;}
+.disclaimer{text-align:center;font-size:10.5px;color:var(--muted-2);margin-top:8px;}
+
+/* ---------- Modal ---------- */
+.modal-back{position:fixed;inset:0;background:rgba(4,6,9,0.7);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-back.show{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;width:100%;max-width:460px;max-height:86vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.modal.wide{max-width:640px;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);}
+.modal-head h3{font-family:var(--disp);font-size:16px;margin:0;display:flex;align-items:center;gap:8px;}
+.modal-head h3 i{color:var(--gold);}
+.modal-close{background:none;border:none;color:var(--muted);font-size:16px;}
+.modal-close:hover{color:var(--sell);}
+.modal-body{padding:18px 20px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.field input,.field select{
+  width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;
+  color:var(--text);font-size:13.5px;font-family:var(--mono);
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--gold);}
+.field .hint{font-size:11px;color:var(--muted-2);margin-top:5px;}
+.btn-row{display:flex;gap:10px;margin-top:6px;}
+.btn{flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);font-size:13.5px;font-weight:600;transition:.15s;}
+.btn.primary{background:linear-gradient(135deg,var(--gold),#b3861f);color:#0a0d12;border:none;}
+.btn.danger{color:var(--sell);}
+.btn:hover{filter:brightness(1.12);}
+.result-box{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px;font-family:var(--mono);font-size:13px;line-height:1.8;}
+.result-box .rline{display:flex;justify-content:space-between;}
+.result-box .rline b{color:var(--gold-bright);}
+.journal-item{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;}
+.journal-item .jhead{display:flex;justify-content:space-between;font-family:var(--mono);font-weight:600;}
+.journal-item .jhead .buy{color:var(--buy);}
+.journal-item .jhead .sell{color:var(--sell);}
+.journal-item p{margin:6px 0 0;color:var(--muted);}
+.news-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
+.news-item:last-child{border-bottom:none;}
+.news-item .ntitle{color:var(--text);font-weight:600;margin-bottom:3px;}
+.news-item .nmeta{color:var(--muted-2);font-size:11px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--gold);border-radius:10px;padding:10px 18px;font-size:12.5px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">FX</div>
+      <div>
+        <div class="name">Forex<span>AI</span> Pro</div>
+        <div class="tag">Trading Terminal</div>
+      </div>
+    </div>
+
+    <div class="greet">
+      <div class="hello">Selamat datang kembali,</div>
+      <div class="uname" id="greetName"><span class="dot"></span> Trader</div>
+    </div>
+
+    <button class="newchat-btn" id="newChatBtn"><i class="fa-solid fa-plus"></i> Chat Baru</button>
+
+    <div class="side-section">
+      <div class="side-label" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Prioritas</span>
+        <span style="font-size:9px;color:var(--buy);"><i class="fa-solid fa-bolt"></i> 2 detik</span>
+      </div>
+      <div class="featured-strip" id="featuredStrip"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Top Pairs</div>
+      <div class="pairs-strip" id="pairsStrip"></div>
+    </div>
+
+    <div class="side-label" style="padding:0 18px;">Riwayat Chat</div>
+    <div class="chat-history" id="chatHistory"></div>
+
+    <div class="side-label" style="padding:0 18px;">Tools</div>
+    <div class="tools-grid" id="toolsGrid"></div>
+
+    <div class="side-footer">
+      <button id="settingsSideBtn"><i class="fa-solid fa-key"></i> API</button>
+      <button id="resetBtn"><i class="fa-solid fa-trash"></i> Reset</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <button class="burger" id="burgerBtn"><i class="fa-solid fa-bars"></i></button>
+      <div class="api-status off" id="apiStatus"><span class="adot"></span><span id="apiStatusText">API belum diatur</span></div>
+      <div class="ticker-wrap"><div class="ticker-track" id="tickerTrack"></div></div>
+      <button class="settings-btn" id="settingsTopBtn"><i class="fa-solid fa-gear"></i></button>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="chat-inner" id="chatInner">
+        <div class="empty-state" id="emptyState">
+          <div class="mark-lg">FX</div>
+          <h1>Forex<span>AI</span> Pro</h1>
+          <p>Analis trading pribadi Anda. Tanyakan sinyal, kirim screenshot chart untuk dianalisis, atau gunakan tools di sidebar.</p>
+          <div class="suggest-grid">
+            <button class="suggest-card" data-prompt="Berikan analisis dan sinyal trading untuk EURUSD saat ini"><b>📊 Sinyal EURUSD</b>Analisis + entry, SL, TP</button>
+            <button class="suggest-card" data-prompt="Jelaskan struktur market GBPJPY hari ini dan bias jangka pendek"><b>🧭 Bias GBPJPY</b>Struktur & arah market</button>
+            <button class="suggest-card" data-prompt="Apa dampak rilis data NFP terhadap USD minggu ini?"><b>📰 Fundamental</b>Dampak berita ke market</button>
+            <button class="suggest-card" data-prompt="Jelaskan cara membaca pola candlestick pin bar untuk entry"><b>🕯️ Edukasi Candle</b>Pola price action</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-zone">
+      <div class="input-inner">
+        <div class="preview-row" id="previewRow"></div>
+        <div class="input-bar">
+          <button class="icon-btn" id="attachBtn" title="Upload gambar chart"><i class="fa-solid fa-paperclip"></i></button>
+          <input type="file" id="fileInput" accept="image/*" style="display:none">
+          <textarea id="chatInput" rows="1" placeholder="Tanyakan analisis, sinyal, atau kirim screenshot chart..."></textarea>
+          <button class="icon-btn send-btn" id="sendBtn" title="Kirim"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+        <div class="disclaimer">ForexAI Pro memberi analisis edukatif, bukan nasihat finansial. Trading forex berisiko tinggi.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-back" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head"><h3><i class="fa-solid fa-key"></i> Pengaturan API</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nama Anda</label>
+        <input type="text" id="usernameInput" placeholder="Trader">
+      </div>
+      <div class="field">
+        <label>Grok (xAI) API Key — prioritas utama</label>
+        <input type="password" id="grokKeyInput" placeholder="gsk_...">
+        <div class="hint">Digunakan lebih dulu jika diisi. Mendukung analisis gambar chart.</div>
+      </div>
+      <div class="field">
+        <label>OpenRouter API Key — fallback otomatis</label>
+        <input type="password" id="orKeyInput" placeholder="sk-or-v1-...">
+        <div class="hint">Otomatis dipakai jika Grok gagal atau kosong (termasuk untuk gambar chart, dengan model vision).</div>
+      </div>
+      <div class="field">
+        <label>Model OpenRouter</label>
+        <select id="orModelSelect">
+          <option value="openai/gpt-oss-20b:free">openai/gpt-oss-20b:free (gratis)</option>
+          <option value="meta-llama/llama-3.3-70b:free">meta-llama/llama-3.3-70b:free (gratis)</option>
+          <option value="anthropic/claude-haiku-4.5">anthropic/claude-haiku-4.5</option>
+          <option value="openai/gpt-5.4-mini">openai/gpt-5.4-mini</option>
+        </select>
+        <div class="hint">Model lama (gpt-3.5-turbo) sudah dipensiunkan OpenAI/OpenRouter dan akan error 404. Opsi ":free" tidak perlu saldo/kartu kredit.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="saveSettingsBtn">Simpan</button>
+      </div>
+      <button class="btn" id="testConnBtn" style="width:100%;margin-top:10px;"><i class="fa-solid fa-satellite-dish"></i> Tes Koneksi</button>
+      <div class="result-box" id="testConnResult" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIZER MODAL -->
+<div class="modal-back" id="sizerModal">
+  <div class="modal">
+    <div class="modal-head"><h3><i class="fa-solid fa-calculator"></i> Position Sizer</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <div class="field"><label>Saldo Akun (USD)</label><input type="number" id="szBalance" value="1000"></div>
+      <div class="field"><label>Risiko per Trade (%)</label><input type="number" id="szRisk" value="1"></div>
+      <div class="field"><label>Stop Loss (pips)</label><input type="number" id="szSL" value="20"></div>
+      <div class="field"><label>Take Profit (pips)</label><input type="number" id="szTP" value="40"></div>
+      <div class="field"><label>Nilai per Pip per Lot (USD)</label><input type="number" id="szPipValue" value="10"></div>
+      <button class="btn primary" id="szCalcBtn">Hitung</button>
+      <div class="result-box" id="szResult" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FIBONACCI MODAL -->
+<div class="modal-back" id="fibModal">
+  <div class="modal">
+    <div class="modal-head"><h3><i class="fa-solid fa-wave-square"></i> Fibonacci Retracement</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <div class="field"><label>Harga Tertinggi (Swing High)</label><input type="number" step="any" id="fibHigh" placeholder="1.09500"></div>
+      <div class="field"><label>Harga Terendah (Swing Low)</label><input type="number" step="any" id="fibLow" placeholder="1.08000"></div>
+      <button class="btn primary" id="fibCalcBtn">Hitung Level</button>
+      <div class="result-box" id="fibResult" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PIVOT MODAL -->
+<div class="modal-back" id="pivotModal">
+  <div class="modal">
+    <div class="modal-head"><h3><i class="fa-solid fa-chart-line"></i> Pivot Points (Harian)</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <div class="field"><label>High Kemarin</label><input type="number" step="any" id="pvHigh"></div>
+      <div class="field"><label>Low Kemarin</label><input type="number" step="any" id="pvLow"></div>
+      <div class="field"><label>Close Kemarin</label><input type="number" step="any" id="pvClose"></div>
+      <button class="btn primary" id="pvCalcBtn">Hitung Pivot</button>
+      <div class="result-box" id="pvResult" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER MODAL -->
+<div class="modal-back" id="scannerModal">
+  <div class="modal wide">
+    <div class="modal-head"><h3><i class="fa-solid fa-radar"></i> Market Scanner</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body" id="scannerBody">
+      <div class="hint">Memindai pergerakan seluruh pair...</div>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNAL MODAL -->
+<div class="modal-back" id="journalModal">
+  <div class="modal wide">
+    <div class="modal-head"><h3><i class="fa-solid fa-book"></i> Trading Journal</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label>Pair</label><input type="text" id="jPair" placeholder="EURUSD"></div>
+        <div><label>Arah</label><select id="jDir"><option value="BUY">BUY</option><option value="SELL">SELL</option></select></div>
+      </div>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label>Entry</label><input type="number" step="any" id="jEntry"></div>
+        <div><label>Hasil (Pips)</label><input type="number" step="any" id="jPips"></div>
+      </div>
+      <div class="field"><label>Catatan</label><input type="text" id="jNote" placeholder="Setup, alasan entry, dll."></div>
+      <button class="btn primary" id="jAddBtn">Tambah Entri</button>
+      <div id="journalList" style="margin-top:14px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NEWS MODAL -->
+<div class="modal-back" id="newsModal">
+  <div class="modal wide">
+    <div class="modal-head"><h3><i class="fa-solid fa-newspaper"></i> Market News</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body" id="newsBody"></div>
+  </div>
+</div>
+
+<!-- GOOGLE NEWS MODAL -->
+<div class="modal-back" id="gnewsModal">
+  <div class="modal">
+    <div class="modal-head"><h3><i class="fa-brands fa-google"></i> Cari Google News</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <div class="field"><label>Kata Kunci</label><input type="text" id="gnewsQuery" placeholder="contoh: Fed suku bunga USD"></div>
+      <button class="btn primary" id="gnewsGoBtn">Buka Pencarian</button>
+      <div class="hint" style="margin-top:10px;">Membuka Google News di tab baru dengan kata kunci Anda.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ECONOMIC CALENDAR MODAL -->
+<div class="modal-back" id="calendarModal">
+  <div class="modal wide">
+    <div class="modal-head"><h3><i class="fa-solid fa-calendar-days"></i> Economic Calendar</h3><button class="modal-close" data-close><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body" id="calendarBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ CONSTANTS ============ */
+const PAIRS = ["GC=F","BTCUSD=X","EURUSD=X","GBPUSD=X","USDJPY=X","AUDUSD=X","USDCAD=X","USDCHF=X","NZDUSD=X","EURGBP=X","EURJPY=X","GBPJPY=X","ETHUSD=X","SI=F","^GSPC","^IXIC"];
+const TOP_SIDEBAR_PAIRS = ["GC=F","BTCUSD=X","EURUSD=X","GBPUSD=X","USDJPY=X"];
+const LIVE_PRICE_MAP = {"GC=F":"XAU","BTCUSD=X":"BTC"}; // simbol prioritas: harga real-time asli dari gold-api.com (bukan simulasi)
+const TOOLS = [
+  {id:"signal",label:"Sinyal",icon:"fa-bolt"},
+  {id:"sizer",label:"Sizer",icon:"fa-calculator"},
+  {id:"calendar",label:"Kalender",icon:"fa-calendar-days"},
+  {id:"scanner",label:"Scanner",icon:"fa-radar"},
+  {id:"fibonacci",label:"Fibonacci",icon:"fa-wave-square"},
+  {id:"pivot",label:"Pivot",icon:"fa-chart-line"},
+  {id:"journal",label:"Journal",icon:"fa-book"},
+  {id:"news",label:"News",icon:"fa-newspaper"},
+  {id:"googlenews",label:"G. News",icon:"fa-brands fa-google"},
+  {id:"marketimpact",label:"Impact",icon:"fa-gauge-high"}
+];
+const LS = {
+  apiKey:"forexai_api_key", grokKey:"forexai_grok_key", username:"forexai_username",
+  chats:"forexai_chats", current:"forexai_current_chat", journal:"forexai_journal", watchlist:"forexai_watchlist",
+  orModel:"forexai_or_model"
+};
+const SYSTEM_PROMPT = `Anda adalah analis forex profesional dengan pengalaman lebih dari 20 tahun. Jawab selalu dalam bahasa Indonesia, markdown rapi.
+
+ATURAN WAJIB SAAT MEMBERI SINYAL TRADING:
+1. Buka dengan penjelasan singkat (maksimal 3-4 kalimat) tentang kondisi market/struktur harga — bahasa lugas dan percaya diri, TANPA kata bersyarat berputar-putar seperti "jika...maka", "apabila...kemungkinan", "bisa saja jika". Ambil satu bias yang jelas berdasarkan data yang ada.
+2. Setelah penjelasan, LANGSUNG tampilkan blok sinyal final dengan format persis seperti ini (heading markdown ###, tidak perlu basa-basi lain di dalam blok):
+
+### 🎯 SINYAL
+**Pair:** [nama pair]
+**Arah:** BUY atau SELL (pilih satu, jangan dua-duanya)
+**Entry:** [harga]
+**Stop Loss:** [harga]
+**Take Profit:** [harga]
+**Risk:Reward:** 1:[angka]
+**Confidence:** Rendah / Sedang / Tinggi
+
+3. Jangan menyisipkan skenario alternatif ("tapi jika harga break ke bawah...") di dalam blok sinyal. Cukup satu arah, satu keputusan, jelas.
+4. Setelah blok sinyal, tutup dengan SATU kalimat singkat pengingat manajemen risiko (bukan paragraf panjang).
+5. Jangan pernah mengklaim tingkat akurasi tertentu (mis. "90% akurat") atau menjamin profit — sinyal adalah probabilitas berbasis analisis, bukan kepastian.`;
+
+let state = {
+  chats: JSON.parse(localStorage.getItem(LS.chats) || "{}"),
+  currentId: localStorage.getItem(LS.current) || null,
+  pendingImages: [],
+  priceCache: {},
+  liveBase: {},
+  liveCandles: {},
+};
+
+/* ============ UTIL ============ */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmtPrice(sym, v){
+  if(v==null) return "—";
+  if(sym.includes("JPY")) return v.toFixed(3);
+  if(sym==="GC=F"||sym==="SI=F") return v.toFixed(2);
+  if(sym.includes("BTC")||sym.includes("ETH")) return v.toFixed(2);
+  if(sym.startsWith("^")) return v.toFixed(2);
+  return v.toFixed(5);
+}
+const SYMBOL_DISPLAY_NAMES = {"GC=F":"XAUUSD","SI=F":"XAGUSD","^GSPC":"SPX500","^IXIC":"NAS100"};
+function niceSym(s){
+  if(SYMBOL_DISPLAY_NAMES[s]) return SYMBOL_DISPLAY_NAMES[s];
+  return s.replace("=X","").replace("=F","").replace("^","");
+}
+
+/* ============ LIVE REAL-TIME PRICE (gold-api.com) — untuk XAUUSD & BTCUSD, harga asli bukan simulasi ============ */
+async function fetchLivePrice(symbol){
+  const apiSym = LIVE_PRICE_MAP[symbol];
+  try{
+    const res = await fetch(`https://api.gold-api.com/price/${apiSym}`);
+    if(!res.ok) throw new Error("bad response");
+    const data = await res.json();
+    const price = data.price;
+    if(state.liveBase[symbol]==null) state.liveBase[symbol] = price;
+    pushLiveTick(symbol, price);
+    return {
+      symbol, live:true, realtime:true,
+      price,
+      prevClose: state.liveBase[symbol],
+      candles: state.liveCandles[symbol]
+    };
+  }catch(e){
+    return {symbol, live:false, error:true, price:null, prevClose:null, candles:[]};
+  }
+}
+function pushLiveTick(symbol, price){
+  const bucket = Math.floor(Date.now()/60000)*60;
+  const arr = state.liveCandles[symbol] || (state.liveCandles[symbol]=[]);
+  const last = arr[arr.length-1];
+  if(last && last.t === bucket){
+    last.h = Math.max(last.h, price);
+    last.l = Math.min(last.l, price);
+    last.c = price;
+  }else{
+    const openPrice = last ? last.c : price;
+    arr.push({o:openPrice, h:price, l:price, c:price, t:bucket});
+    if(arr.length>60) arr.shift();
+  }
+}
+
+/* ============ MARKET DATA (Yahoo Finance — data asli, tanpa simulasi) ============ */
+async function fetchYahoo(symbol){
+  if(LIVE_PRICE_MAP[symbol]) return await fetchLivePrice(symbol);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d`;
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("bad response");
+    const data = await res.json();
+    const r = data.chart.result[0];
+    const closes = r.indicators.quote[0].close.filter(v=>v!=null);
+    const opens = r.indicators.quote[0].open.filter(v=>v!=null);
+    const highs = r.indicators.quote[0].high.filter(v=>v!=null);
+    const lows = r.indicators.quote[0].low.filter(v=>v!=null);
+    const timestamps = r.timestamp;
+    const meta = r.meta;
+    return {
+      symbol, live:true,
+      price: meta.regularMarketPrice,
+      prevClose: meta.previousClose || meta.chartPreviousClose,
+      candles: closes.map((c,i)=>({o:opens[i],h:highs[i],l:lows[i],c, t:timestamps[i]})).slice(-60)
+    };
+  }catch(e){
+    return {symbol, live:false, error:true, price:null, prevClose:null, candles:[]};
+  }
+}
+
+async function refreshTicker(){
+  const results = await Promise.all(PAIRS.map(p=>fetchYahoo(p)));
+  results.forEach(r=>{ state.priceCache[r.symbol] = r; });
+  renderTicker(results);
+  renderSidebarPairs(results);
+}
+function renderTicker(results){
+  const track = document.getElementById('tickerTrack');
+  const build = results.filter(r=>!r.error).map(r=>{
+    const chg = ((r.price - r.prevClose)/r.prevClose*100);
+    const cls = chg>=0?"up":"down";
+    return `<span class="tick">${niceSym(r.symbol)} <b>${fmtPrice(r.symbol,r.price)}</b> <span class="chg ${cls}">${chg>=0?'+':''}${chg.toFixed(2)}%</span></span>`;
+  }).join("");
+  track.innerHTML = build + build;
+}
+function renderSidebarPairs(results){
+  const wrap = document.getElementById('pairsStrip');
+  const top = results.filter(r=>["EURUSD=X","GBPUSD=X","USDJPY=X"].includes(r.symbol));
+  wrap.innerHTML = top.map(r=>{
+    if(r.error){
+      return `<div class="pair-row" data-sym="${r.symbol}"><span class="sym">${niceSym(r.symbol)}</span><span class="chg" style="color:var(--muted-2);">data tidak tersedia</span></div>`;
+    }
+    const chg = ((r.price - r.prevClose)/r.prevClose*100);
+    const cls = chg>=0?"up":"down";
+    return `<div class="pair-row" data-sym="${r.symbol}"><span class="sym">${niceSym(r.symbol)}</span><span class="chg ${cls}">${fmtPrice(r.symbol,r.price)} (${chg>=0?'+':''}${chg.toFixed(2)}%)</span></div>`;
+  }).join("");
+  wrap.querySelectorAll('.pair-row').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const sym = el.dataset.sym;
+      insertPrompt(`Tampilkan chart dan analisis singkat untuk ${niceSym(sym)}`);
+    });
+  });
+}
+
+const FEATURED_PAIRS = ["BTCUSD=X","GC=F"];
+let lastFeaturedFetchTime = null;
+async function refreshFeatured(){
+  const results = await Promise.all(FEATURED_PAIRS.map(p=>fetchYahoo(p)));
+  results.forEach(r=>{ if(!r.error) state.priceCache[r.symbol] = r; });
+  lastFeaturedFetchTime = new Date();
+  renderFeatured(results);
+}
+function renderFeatured(results){
+  const wrap = document.getElementById('featuredStrip');
+  if(!wrap) return;
+  const timeStr = lastFeaturedFetchTime ? lastFeaturedFetchTime.toLocaleTimeString('id-ID') : "—";
+  wrap.innerHTML = results.map(r=>{
+    if(r.error){
+      return `<div class="featured-card" data-sym="${r.symbol}">
+        <div class="frow1">
+          <span class="fsym">${niceSym(r.symbol)}</span>
+          <span class="fprice" style="color:var(--muted-2);">—</span>
+        </div>
+        <div class="frow2"><span>data tidak tersedia</span><span>coba lagi ${timeStr}</span></div>
+      </div>`;
+    }
+    const chg = ((r.price-r.prevClose)/r.prevClose*100);
+    const cls = chg>=0?"up":"down";
+    return `<div class="featured-card" data-sym="${r.symbol}">
+      <div class="frow1">
+        <span class="fsym"><span class="livedot"></span>${niceSym(r.symbol)}</span>
+        <span class="fprice ${cls}" style="color:${chg>=0?'var(--buy)':'var(--sell)'}">${fmtPrice(r.symbol,r.price)}</span>
+      </div>
+      <div class="frow2"><span>${chg>=0?'+':''}${chg.toFixed(2)}%</span><span>real-time • ${timeStr}</span></div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll('.featured-card').forEach(el=>{
+    el.addEventListener('click',()=>{
+      insertPrompt(`Tampilkan chart dan analisis singkat untuk ${niceSym(el.dataset.sym)}`);
+    });
+  });
+}
+
+/* ============ CANDLESTICK CANVAS RENDER ============ */
+function drawCandles(canvas, candles){
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#0e131b"; ctx.fillRect(0,0,w,h);
+
+  const highs = candles.map(c=>c.h), lows = candles.map(c=>c.l);
+  const max = Math.max(...highs), min = Math.min(...lows);
+  const pad = (max-min)*0.08 || max*0.001;
+  const top = max+pad, bottom = min-pad;
+  const range = top-bottom || 1;
+
+  // grid
+  ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1;
+  for(let i=0;i<=4;i++){
+    const y = (h/4)*i;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+  }
+
+  const n = candles.length;
+  const slot = w/n;
+  const bodyW = Math.max(2, slot*0.6);
+
+  candles.forEach((c,i)=>{
+    const x = i*slot + slot/2;
+    const yO = h - ((c.o-bottom)/range)*h;
+    const yC = h - ((c.c-bottom)/range)*h;
+    const yH = h - ((c.h-bottom)/range)*h;
+    const yL = h - ((c.l-bottom)/range)*h;
+    const up = c.c >= c.o;
+    ctx.strokeStyle = up ? "#26a69a" : "#ef5350";
+    ctx.fillStyle = up ? "#26a69a" : "#ef5350";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x,yH); ctx.lineTo(x,yL); ctx.stroke();
+    const bt = Math.min(yO,yC), bh = Math.max(1,Math.abs(yC-yO));
+    ctx.fillRect(x-bodyW/2, bt, bodyW, bh);
+  });
+
+  // current price line
+  const last = candles[candles.length-1];
+  const yLast = h - ((last.c-bottom)/range)*h;
+  ctx.strokeStyle = "rgba(212,165,55,0.6)"; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(0,yLast); ctx.lineTo(w,yLast); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function buildChartCard(symbol, data){
+  const div = document.createElement('div');
+  div.className = "chart-card";
+  if(data.error || !data.candles || data.candles.length===0){
+    div.innerHTML = `
+      <div class="chart-head">
+        <span class="sym">${niceSym(symbol)}</span>
+        <span class="price" style="color:var(--muted-2);">Data tidak tersedia</span>
+      </div>
+      <div class="hint" style="padding:10px 0;">Sumber data sedang tidak bisa dijangkau saat ini (bukan disimulasikan). Coba lagi sebentar lagi.</div>
+    `;
+    return div;
+  }
+  const chg = ((data.price - data.prevClose)/data.prevClose*100);
+  const cls = chg>=0?"up":"down";
+  div.innerHTML = `
+    <div class="chart-head">
+      <span class="sym">${niceSym(symbol)}</span>
+      <span class="price ${cls}">${fmtPrice(symbol,data.price)} <small style="font-size:11px;">(${chg>=0?'+':''}${chg.toFixed(2)}%)</small></span>
+    </div>
+    <canvas class="candles"></canvas>
+    <div class="chart-foot"><span>${data.realtime?'Live real-time • gold-api.com':(data.live?'Live • Yahoo Finance':'Data tidak tersedia')}</span><span>1m • ${data.candles.length} bar</span></div>
+  `;
+  requestAnimationFrame(()=>{
+    const cv = div.querySelector('canvas');
+    drawCandles(cv, data.candles);
+  });
+  return div;
+}
+
+/* ============ CHAT RENDERING ============ */
+function getCurrentChat(){
+  if(!state.currentId || !state.chats[state.currentId]){
+    createNewChat();
+  }
+  return state.chats[state.currentId];
+}
+function createNewChat(){
+  const id = uid();
+  state.chats[id] = {id, title:"Chat Baru", messages:[], createdAt:Date.now()};
+  state.currentId = id;
+  persistChats();
+  renderHistory();
+  renderMessages();
+}
+function persistChats(){
+  localStorage.setItem(LS.chats, JSON.stringify(state.chats));
+  localStorage.setItem(LS.current, state.currentId);
+}
+function renderHistory(){
+  const wrap = document.getElementById('chatHistory');
+  const list = Object.values(state.chats).sort((a,b)=>b.createdAt-a.createdAt);
+  wrap.innerHTML = list.map(c=>`
+    <div class="hist-item ${c.id===state.currentId?'active':''}" data-id="${c.id}">
+      <span class="htitle">${c.title}</span>
+      <i class="fa-solid fa-xmark hdel" data-del="${c.id}"></i>
+    </div>`).join("") || `<div class="hint" style="padding:10px;">Belum ada riwayat.</div>`;
+  wrap.querySelectorAll('.hist-item').forEach(el=>{
+    el.addEventListener('click',(e)=>{
+      if(e.target.dataset.del) return;
+      state.currentId = el.dataset.id;
+      persistChats(); renderHistory(); renderMessages();
+      closeSidebarMobile();
+    });
+  });
+  wrap.querySelectorAll('[data-del]').forEach(el=>{
+    el.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      const id = el.dataset.del;
+      delete state.chats[id];
+      if(state.currentId===id){ state.currentId=null; }
+      persistChats();
+      if(!state.currentId) createNewChat(); else { renderHistory(); renderMessages(); }
+    });
+  });
+}
+let EMPTY_STATE_HTML = "";
+function renderMessages(){
+  const chat = getCurrentChat();
+  const inner = document.getElementById('chatInner');
+  if(chat.messages.length===0){
+    inner.innerHTML = EMPTY_STATE_HTML;
+    bindSuggestCards();
+    return;
+  }
+  inner.innerHTML = "";
+  chat.messages.forEach(m=>inner.appendChild(renderMsgEl(m)));
+  document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+}
+function bindSuggestCards(){
+  document.querySelectorAll('.suggest-card').forEach(c=>{
+    c.addEventListener('click',()=>insertPrompt(c.dataset.prompt));
+  });
+}
+function parseSignalBlock(text){
+  const m = text.match(/###\s*🎯?\s*SINYAL([\s\S]*?)(?:\n\n(?!\*\*)|$)/i);
+  if(!m) return null;
+  const block = m[0];
+  const grab = (label)=>{
+    const re = new RegExp("\\*\\*"+label+":\\*\\*\\s*(.+)","i");
+    const mm = block.match(re);
+    return mm ? mm[1].trim() : null;
+  };
+  const pair = grab("Pair");
+  const arahRaw = grab("Arah");
+  const entry = grab("Entry");
+  const sl = grab("Stop Loss");
+  const tp = grab("Take Profit");
+  const rr = grab("Risk:Reward") || grab("Risk Reward");
+  const conf = grab("Confidence");
+  if(!arahRaw || !entry) return null;
+  const arah = /buy/i.test(arahRaw) ? "BUY" : "SELL";
+  return {raw: block, pair, arah, entry, sl, tp, rr, conf, cleanedText: text.replace(block, "").trim()};
+}
+function buildSignalCard(sig){
+  const isBuy = sig.arah === "BUY";
+  const div = document.createElement('div');
+  div.className = "signal-card";
+  div.innerHTML = `
+    <div class="signal-head ${isBuy?'buy':'sell'}">
+      <span>${sig.pair || 'Sinyal'} <i class="fa-solid ${isBuy?'fa-arrow-trend-up':'fa-arrow-trend-down'}"></i></span>
+      <span class="badge">${sig.arah}</span>
+    </div>
+    <div class="signal-body">
+      <div class="signal-field"><div class="slabel">Entry</div><div class="sval">${sig.entry||'—'}</div></div>
+      <div class="signal-field"><div class="slabel">Risk:Reward</div><div class="sval">${sig.rr?('1:'+sig.rr.replace(/^1:/,'')):'—'}</div></div>
+      <div class="signal-field"><div class="slabel">Stop Loss</div><div class="sval" style="color:var(--sell)">${sig.sl||'—'}</div></div>
+      <div class="signal-field"><div class="slabel">Take Profit</div><div class="sval" style="color:var(--buy)">${sig.tp||'—'}</div></div>
+      <div class="signal-field full"><div class="slabel">Confidence</div><div class="sval conf-${sig.conf||''}">${sig.conf||'—'}</div></div>
+    </div>
+  `;
+  return div;
+}
+function renderMsgEl(m){
+  const div = document.createElement('div');
+  div.className = `msg ${m.role==='user'?'user':'ai'}`;
+  const avatar = m.role==='user' ? `<div class="avatar me"><i class="fa-solid fa-user"></i></div>` : `<div class="avatar ai">FX</div>`;
+  let bubbleContent = "";
+  if(m.images && m.images.length){
+    bubbleContent += m.images.map(src=>`<img class="attach" src="${src}">`).join("");
+  }
+  let textForMd = m.content || "";
+  let sig = null;
+  if(m.role !== 'user'){
+    sig = parseSignalBlock(textForMd);
+    if(sig) textForMd = sig.cleanedText;
+  }
+  const html = DOMPurify.sanitize(marked.parse(textForMd));
+  bubbleContent += html;
+  div.innerHTML = `${avatar}<div class="bubble">${bubbleContent}</div>`;
+  if(sig){
+    div.querySelector('.bubble').appendChild(buildSignalCard(sig));
+  }
+  if(m.chartSymbol && m.chartData){
+    div.querySelector('.bubble').appendChild(buildChartCard(m.chartSymbol, m.chartData));
+  }
+  return div;
+}
+function appendMessage(msg){
+  const chat = getCurrentChat();
+  chat.messages.push(msg);
+  if(chat.messages.length===1 && msg.role==='user'){
+    chat.title = (msg.content||"Gambar chart").slice(0,32);
+  }
+  persistChats();
+  const inner = document.getElementById('chatInner');
+  if(chat.messages.length===1){ inner.innerHTML=""; }
+  inner.appendChild(renderMsgEl(msg));
+  document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+  renderHistory();
+  return msg;
+}
+
+/* ============ AI CALLS ============ */
+function getKeys(){
+  return {
+    grok: localStorage.getItem(LS.grokKey) || "",
+    or: localStorage.getItem(LS.apiKey) || "",
+    orModel: localStorage.getItem(LS.orModel) || "openai/gpt-oss-20b:free"
+  };
+}
+function updateApiStatus(){
+  const {grok, or} = getKeys();
+  const el = document.getElementById('apiStatus');
+  const txt = document.getElementById('apiStatusText');
+  if(grok){ el.className="api-status on"; txt.textContent="Grok Aktif"; }
+  else if(or){ el.className="api-status on"; txt.textContent="OpenRouter Aktif"; }
+  else { el.className="api-status off"; txt.textContent="API belum diatur"; }
+}
+
+let grokModelCache = null;
+async function resolveGrokModel(keys){
+  if(grokModelCache) return grokModelCache;
+  try{
+    const res = await fetch("https://api.x.ai/v1/models", {headers:{"Authorization":`Bearer ${keys.grok}`}});
+    if(res.ok){
+      const data = await res.json();
+      const list = data.models || data.data || [];
+      const isUsable = (m) => m.id && !/image$|imagine|-image-/i.test(m.id);
+      const visionModel = list.find(m => isUsable(m) && (m.input_modalities||[]).includes("image"));
+      const textModel = list.find(m => isUsable(m));
+      grokModelCache = (visionModel || textModel || {}).id || "grok-4";
+    } else {
+      grokModelCache = "grok-4";
+    }
+  }catch(e){
+    grokModelCache = "grok-4";
+  }
+  return grokModelCache;
+}
+async function callGrok(messages, keys, hasImage){
+  const model = await resolveGrokModel(keys);
+  const res = await fetch("https://api.x.ai/v1/chat/completions",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":`Bearer ${keys.grok}`},
+    body: JSON.stringify({model, messages, temperature:0.4, max_tokens:1024})
+  });
+  if(!res.ok){
+    let detail = "";
+    try{ const errJson = await res.json(); detail = errJson.error?.message || errJson.message || JSON.stringify(errJson); }
+    catch(e){ /* body not json */ }
+    throw new Error(`Grok error ${res.status}${detail ? ': '+detail : ''}`);
+  }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+async function callOpenRouter(messages, keys, hasImage){
+  const model = hasImage ? "anthropic/claude-haiku-4.5" : keys.orModel;
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":`Bearer ${keys.or}`},
+    body: JSON.stringify({model, messages, temperature:0.4, max_tokens:1024})
+  });
+  if(!res.ok){
+    let detail = "";
+    try{ const errJson = await res.json(); detail = errJson.error?.message || errJson.message || ""; }
+    catch(e){ /* body not json */ }
+    throw new Error(`OpenRouter error ${res.status}${detail ? ': '+detail : ''}`);
+  }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+async function askAI(userText, images){
+  const keys = getKeys();
+  if(!keys.grok && !keys.or){
+    return "⚠️ **API belum diatur.** Silakan buka pengaturan (ikon gear di kanan atas) dan masukkan API key Grok untuk mulai menganalisis.";
+  }
+  const chat = getCurrentChat();
+  const history = chat.messages.slice(-8).map(m=>({role: m.role==='user'?'user':'assistant', content: m.content}));
+
+  const hasImage = !!(images && images.length);
+  let userContent;
+  if(hasImage){
+    userContent = [{type:"text", text:userText || "Analisis chart ini."}, ...images.map(src=>({type:"image_url", image_url:{url:src}}))];
+  } else {
+    userContent = userText;
+  }
+  const messages = [{role:"system", content:SYSTEM_PROMPT}, ...history, {role:"user", content:userContent}];
+
+  // Coba Grok dulu (prioritas). Jika gagal dan OpenRouter tersedia, otomatis pindah ke OpenRouter.
+  if(keys.grok){
+    try{
+      return await callGrok(messages, keys, hasImage);
+    }catch(e){
+      if(keys.or){
+        try{
+          const reply = await callOpenRouter(messages, keys, hasImage);
+          return `_(Grok gagal — otomatis beralih ke OpenRouter)_\n\n${reply}`;
+        }catch(e2){
+          if((e2.message||"").includes("Failed to fetch")) return formatConnError(e2);
+          return formatBothFailed(e, e2);
+        }
+      }
+      return formatGrokError(e);
+    }
+  }
+  try{
+    return await callOpenRouter(messages, keys, hasImage);
+  }catch(e){
+    if((e.message||"").includes("Failed to fetch")) return formatConnError(e);
+    return formatOpenRouterError(e);
+  }
+}
+function formatGrokError(e){
+  const msg = (e && e.message) || "";
+  if(msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("Load failed")){
+    return formatConnError(e);
+  }
+  const codeMatch = msg.match(/Grok error (\d+)/);
+  const code = codeMatch ? codeMatch[1] : null;
+  let hint = "Periksa kembali API key Grok Anda di Pengaturan.";
+  if(code==="401" || code==="400") hint = "API key Grok tidak valid atau salah salin.";
+  else if(code==="403") hint = "API key Grok valid tapi tidak punya akses/kredit.";
+  else if(code==="404") hint = "Model Grok tidak ditemukan — kemungkinan nama model berubah di sisi xAI.";
+  else if(code==="429") hint = "Terkena rate limit / kuota Grok habis.";
+  return `⚠️ **Grok gagal merespons** (status ${code||'?'}).\n\n${hint}\n\n🔗 Cek/perbarui API key Grok di: https://console.x.ai\n\n_Detail teknis: ${msg}_`;
+}
+function formatOpenRouterError(e){
+  const msg = (e && e.message) || "";
+  const codeMatch = msg.match(/OpenRouter error (\d+)/);
+  const code = codeMatch ? codeMatch[1] : null;
+  let hint = "Periksa kembali API key OpenRouter Anda di Pengaturan.";
+  if(code==="401") hint = "API key OpenRouter tidak valid atau salah salin.";
+  else if(code==="402") hint = "Saldo/kredit OpenRouter tidak cukup untuk model ini (model vision biasanya berbayar, coba isi saldo atau gunakan model gratis untuk chat teks).";
+  else if(code==="404") hint = "Model yang dipilih tidak tersedia untuk akun Anda.";
+  else if(code==="429") hint = "Terkena rate limit / kuota model gratis habis, coba lagi nanti.";
+  return `⚠️ **OpenRouter gagal merespons** (status ${code||'?'}).\n\n${hint}\n\n🔗 Cek API key & saldo OpenRouter di: https://openrouter.ai/keys\n\n_Detail teknis: ${msg}_`;
+}
+function formatBothFailed(grokErr, orErr){
+  const gMsg = (grokErr && grokErr.message) || "tidak diketahui";
+  const oMsg = (orErr && orErr.message) || "tidak diketahui";
+  return `⚠️ **Grok dan OpenRouter dua-duanya gagal merespons.**\n\n**Grok:**\n${gMsg}\n🔗 Cek/perbarui API key Grok: https://console.x.ai\n\n**OpenRouter:**\n${oMsg}\n🔗 Cek API key & saldo OpenRouter: https://openrouter.ai/keys`;
+}
+function formatConnError(e){
+  const msg = (e && e.message) || "";
+  if(msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("Load failed")){
+    return `⚠️ **Koneksi ke API diblokir.** Ini biasanya terjadi jika file ini dibuka di dalam preview/in-app browser (mis. di dalam aplikasi Claude), yang membatasi koneksi keluar ke domain eksternal seperti \`api.x.ai\` atau \`openrouter.ai\`.\n\n**Cara memperbaiki:** download file \`.html\` ini lalu buka langsung menggunakan Chrome, Safari, atau browser biasa lainnya (bukan dari dalam preview chat). Setelah dibuka di browser asli, panggilan API akan berjalan normal.`;
+  }
+  return `⚠️ Gagal menghubungi AI. Periksa API key Anda.\n\n_Detail: ${msg}_`;
+}
+
+function detectPairMention(text){
+  const t = text.toUpperCase();
+  const known = {"EURUSD":"EURUSD=X","GBPUSD":"GBPUSD=X","USDJPY":"USDJPY=X","AUDUSD":"AUDUSD=X","USDCAD":"USDCAD=X","USDCHF":"USDCHF=X","NZDUSD":"NZDUSD=X","EURGBP":"EURGBP=X","EURJPY":"EURJPY=X","GBPJPY":"GBPJPY=X","BTCUSD":"BTCUSD=X","BTC":"BTCUSD=X","ETHUSD":"ETHUSD=X","ETH":"ETHUSD=X","XAUUSD":"GC=F","GOLD":"GC=F","SILVER":"SI=F","SP500":"^GSPC","NASDAQ":"^IXIC"};
+  for(const key in known){ if(t.includes(key)) return known[key]; }
+  return null;
+}
+
+/* ============ SEND FLOW ============ */
+async function handleSend(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  const images = [...state.pendingImages];
+  if(!text && images.length===0) return;
+
+  appendMessage({role:'user', content:text, images});
+  input.value=""; autoGrow(input);
+  state.pendingImages = [];
+  renderPreviews();
+
+  const thinkingEl = document.createElement('div');
+  thinkingEl.className = "msg ai";
+  thinkingEl.innerHTML = `<div class="avatar ai">FX</div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;
+  document.getElementById('chatInner').appendChild(thinkingEl);
+  document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+
+  const reply = await askAI(text, images);
+  thinkingEl.remove();
+
+  const pairSym = detectPairMention(text);
+  let chartSymbol=null, chartData=null;
+  if(pairSym){
+    chartData = await fetchYahoo(pairSym);
+    chartSymbol = pairSym;
+  }
+  appendMessage({role:'assistant', content:reply, chartSymbol, chartData});
+}
+function insertPrompt(text){
+  const input = document.getElementById('chatInput');
+  input.value = text; autoGrow(input); input.focus();
+}
+function autoGrow(el){ el.style.height="auto"; el.style.height = Math.min(120, el.scrollHeight)+"px"; }
+
+/* ============ IMAGE UPLOAD ============ */
+function renderPreviews(){
+  const row = document.getElementById('previewRow');
+  row.innerHTML = state.pendingImages.map((src,i)=>`
+    <div class="preview-thumb"><img src="${src}"><button class="rm" data-i="${i}">✕</button></div>`).join("");
+  row.querySelectorAll('.rm').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      state.pendingImages.splice(+btn.dataset.i,1);
+      renderPreviews();
+    });
+  });
+}
+
+/* ============ TOOLS ============ */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',e=>{
+  closeModal(e.target.closest('.modal-back').id);
+}));
+document.querySelectorAll('.modal-back').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
+});
+
+function openTool(id){
+  switch(id){
+    case 'signal': insertPrompt("Berikan sinyal trading untuk EURUSD lengkap dengan entry, SL, TP, risk:reward, dan confidence level."); break;
+    case 'sizer': openModal('sizerModal'); break;
+    case 'calendar': openModal('calendarModal'); renderCalendar(); break;
+    case 'scanner': openModal('scannerModal'); runScanner(); break;
+    case 'fibonacci': openModal('fibModal'); break;
+    case 'pivot': openModal('pivotModal'); break;
+    case 'journal': openModal('journalModal'); renderJournal(); break;
+    case 'news': openModal('newsModal'); renderNews(); break;
+    case 'googlenews': openModal('gnewsModal'); break;
+    case 'marketimpact': insertPrompt("Analisis Market Impact: jelaskan berita ekonomi terbaru yang paling berpotensi menggerakkan pasar forex minggu ini dan pair mana yang paling terdampak."); break;
+  }
+  closeSidebarMobile();
+}
+
+/* Sizer */
+document.getElementById('szCalcBtn').addEventListener('click',()=>{
+  const bal = +document.getElementById('szBalance').value;
+  const riskPct = +document.getElementById('szRisk').value;
+  const sl = +document.getElementById('szSL').value;
+  const tp = +document.getElementById('szTP').value;
+  const pipVal = +document.getElementById('szPipValue').value;
+  const riskAmt = bal*(riskPct/100);
+  const lot = riskAmt/(sl*pipVal);
+  const rr = (tp/sl).toFixed(2);
+  const box = document.getElementById('szResult');
+  box.style.display="block";
+  box.innerHTML = `
+    <div class="rline"><span>Risiko (USD)</span><b>$${riskAmt.toFixed(2)}</b></div>
+    <div class="rline"><span>Ukuran Lot Disarankan</span><b>${lot.toFixed(2)} lot</b></div>
+    <div class="rline"><span>Potensi Profit (USD)</span><b>$${(tp*pipVal*lot).toFixed(2)}</b></div>
+    <div class="rline"><span>Risk : Reward</span><b>1 : ${rr}</b></div>
+  `;
+});
+
+/* Fibonacci */
+document.getElementById('fibCalcBtn').addEventListener('click',()=>{
+  const high = +document.getElementById('fibHigh').value;
+  const low = +document.getElementById('fibLow').value;
+  if(!high || !low || high<=low){ toast("Masukkan high & low yang valid"); return; }
+  const diff = high-low;
+  const levels = [0,0.236,0.382,0.5,0.618,0.786,1].map(l=>({l, price: high - diff*l}));
+  const box = document.getElementById('fibResult');
+  box.style.display="block";
+  box.innerHTML = levels.map(x=>`<div class="rline"><span>${(x.l*100).toFixed(1)}%</span><b>${x.price.toFixed(5)}</b></div>`).join("");
+});
+
+/* Pivot */
+document.getElementById('pvCalcBtn').addEventListener('click',()=>{
+  const H = +document.getElementById('pvHigh').value;
+  const L = +document.getElementById('pvLow').value;
+  const C = +document.getElementById('pvClose').value;
+  if(!H||!L||!C){ toast("Lengkapi High, Low, Close"); return; }
+  const P = (H+L+C)/3;
+  const R1 = 2*P-L, S1 = 2*P-H;
+  const R2 = P+(H-L), S2 = P-(H-L);
+  const R3 = H+2*(P-L), S3 = L-2*(H-P);
+  const box = document.getElementById('pvResult');
+  box.style.display="block";
+  box.innerHTML = [["R3",R3],["R2",R2],["R1",R1],["Pivot",P],["S1",S1],["S2",S2],["S3",S3]]
+    .map(([k,v])=>`<div class="rline"><span>${k}</span><b>${v.toFixed(5)}</b></div>`).join("");
+});
+
+/* Scanner */
+async function runScanner(){
+  const body = document.getElementById('scannerBody');
+  body.innerHTML = `<div class="hint">Memindai pergerakan seluruh pair...</div>`;
+  const results = await Promise.all(PAIRS.map(p=>fetchYahoo(p)));
+  const rows = results.filter(r=>!r.error).map(r=>{
+    const chg = ((r.price-r.prevClose)/r.prevClose*100);
+    return {sym:r.symbol, chg, price:r.price};
+  }).sort((a,b)=>Math.abs(b.chg)-Math.abs(a.chg));
+  const unavailable = results.filter(r=>r.error);
+  body.innerHTML = rows.map(r=>`
+    <div class="rline" style="padding:8px 0;border-bottom:1px solid var(--border);font-family:var(--mono);">
+      <span>${niceSym(r.sym)}</span>
+      <span>${fmtPrice(r.sym,r.price)}</span>
+      <b style="color:${r.chg>=0?'var(--buy)':'var(--sell)'}">${r.chg>=0?'+':''}${r.chg.toFixed(2)}%</b>
+    </div>`).join("") + (unavailable.length ? `<div class="hint" style="margin-top:8px;">Tidak tersedia saat ini: ${unavailable.map(r=>niceSym(r.sym)).join(", ")}</div>` : "");
+}
+
+/* Journal */
+function getJournal(){ return JSON.parse(localStorage.getItem(LS.journal)||"[]"); }
+function saveJournal(j){ localStorage.setItem(LS.journal, JSON.stringify(j)); }
+document.getElementById('jAddBtn').addEventListener('click',()=>{
+  const pair = document.getElementById('jPair').value.trim().toUpperCase();
+  const dir = document.getElementById('jDir').value;
+  const entry = document.getElementById('jEntry').value;
+  const pips = document.getElementById('jPips').value;
+  const note = document.getElementById('jNote').value.trim();
+  if(!pair){ toast("Isi nama pair"); return; }
+  const j = getJournal();
+  j.unshift({id:uid(), pair, dir, entry, pips, note, date:new Date().toLocaleString('id-ID')});
+  saveJournal(j);
+  document.getElementById('jPair').value=""; document.getElementById('jEntry').value="";
+  document.getElementById('jPips').value=""; document.getElementById('jNote').value="";
+  renderJournal();
+});
+function renderJournal(){
+  const j = getJournal();
+  const list = document.getElementById('journalList');
+  if(j.length===0){ list.innerHTML = `<div class="hint">Belum ada catatan trading.</div>`; return; }
+  list.innerHTML = j.map(e=>`
+    <div class="journal-item">
+      <div class="jhead"><span>${e.pair} <span class="${e.dir==='BUY'?'buy':'sell'}">${e.dir}</span></span>
+      <span style="color:${(+e.pips||0)>=0?'var(--buy)':'var(--sell)'}">${e.pips?(e.pips>0?'+':'')+e.pips+' pips':''}</span></div>
+      <p>${e.note||'—'} · Entry ${e.entry||'—'} · ${e.date}</p>
+    </div>`).join("");
+}
+
+/* News (simulated headlines w/ realistic macro themes; label as simulasi) */
+function renderNews(){
+  const items = [
+    {t:"The Fed pertahankan suku bunga, pasar tunggu sinyal pemangkasan berikutnya", m:"Makro · USD"},
+    {t:"Data inflasi zona Euro sedikit di atas ekspektasi", m:"Makro · EUR"},
+    {t:"BoJ isyaratkan normalisasi kebijakan bertahap", m:"Makro · JPY"},
+    {t:"Harga emas bergerak volatil di tengah ketegangan geopolitik", m:"Komoditas · XAU"},
+    {t:"Data ketenagakerjaan AS jadi fokus utama pekan ini", m:"Makro · USD"},
+  ];
+  document.getElementById('newsBody').innerHTML = items.map(n=>`
+    <div class="news-item"><div class="ntitle">${n.t}</div><div class="nmeta">${n.m} · Simulasi ringkasan</div></div>`).join("")
+    + `<div class="hint" style="margin-top:10px;">Berita ini adalah simulasi ringkasan tematik. Gunakan tool "G. News" untuk berita real-time.</div>`;
+}
+
+/* Google News */
+document.getElementById('gnewsGoBtn').addEventListener('click',()=>{
+  const q = document.getElementById('gnewsQuery').value.trim();
+  if(!q){ toast("Masukkan kata kunci"); return; }
+  window.open(`https://news.google.com/search?q=${encodeURIComponent(q)}`, '_blank');
+});
+
+/* Economic Calendar (simulated structure, labeled) */
+function renderCalendar(){
+  const days = ["Senin","Selasa","Rabu","Kamis","Jumat"];
+  const events = [
+    {d:"Senin", time:"14:00", ev:"PMI Manufaktur Zona Euro", imp:"Sedang", cur:"EUR"},
+    {d:"Selasa", time:"19:30", ev:"CPI (Inflasi) AS", imp:"Tinggi", cur:"USD"},
+    {d:"Rabu", time:"08:30", ev:"Keputusan Suku Bunga BoJ", imp:"Tinggi", cur:"JPY"},
+    {d:"Kamis", time:"19:30", ev:"Klaim Pengangguran AS", imp:"Sedang", cur:"USD"},
+    {d:"Jumat", time:"19:30", ev:"Non-Farm Payrolls (NFP)", imp:"Tinggi", cur:"USD"},
+  ];
+  document.getElementById('calendarBody').innerHTML = events.map(e=>`
+    <div class="news-item">
+      <div class="ntitle">${e.ev} <span style="color:var(--gold-bright);">(${e.cur})</span></div>
+      <div class="nmeta">${e.d} · ${e.time} WIB · Dampak: <b style="color:${e.imp==='Tinggi'?'var(--sell)':'var(--gold)'}">${e.imp}</b></div>
+    </div>`).join("") + `<div class="hint" style="margin-top:10px;">Jadwal ilustratif berbasis pola rilis mingguan umum. Selalu cek kalender resmi broker Anda untuk waktu pasti.</div>`;
+}
+
+/* ============ INIT / EVENTS ============ */
+function renderToolsGrid(){
+  document.getElementById('toolsGrid').innerHTML = TOOLS.map(t=>`
+    <button class="tool-btn" data-tool="${t.id}"><i class="fa-solid ${t.icon}"></i>${t.label}</button>`).join("");
+  document.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>openTool(b.dataset.tool)));
+}
+function closeSidebarMobile(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('scrim').classList.remove('show');
+}
+function loadSettingsToForm(){
+  document.getElementById('usernameInput').value = localStorage.getItem(LS.username) || "";
+  document.getElementById('grokKeyInput').value = localStorage.getItem(LS.grokKey) || "";
+  document.getElementById('orKeyInput').value = localStorage.getItem(LS.apiKey) || "";
+  document.getElementById('orModelSelect').value = localStorage.getItem(LS.orModel) || "openai/gpt-oss-20b:free";
+}
+document.getElementById('saveSettingsBtn').addEventListener('click',()=>{
+  localStorage.setItem(LS.username, document.getElementById('usernameInput').value.trim() || "Trader");
+  localStorage.setItem(LS.grokKey, document.getElementById('grokKeyInput').value.trim());
+  localStorage.setItem(LS.apiKey, document.getElementById('orKeyInput').value.trim());
+  localStorage.setItem(LS.orModel, document.getElementById('orModelSelect').value);
+  document.getElementById('greetName').innerHTML = `<span class="dot"></span> ${localStorage.getItem(LS.username)}`;
+  updateApiStatus();
+  closeModal('settingsModal');
+  toast("Pengaturan disimpan");
+});
+
+async function testConnection(){
+  const box = document.getElementById('testConnResult');
+  const keys = {
+    grok: document.getElementById('grokKeyInput').value.trim(),
+    or: document.getElementById('orKeyInput').value.trim()
+  };
+  box.style.display = "block";
+  box.innerHTML = `<div class="hint">Menguji koneksi ke server AI...</div>`;
+  const lines = [];
+
+  // Baseline: can we reach the network at all from this page?
+  let baseline = "gagal";
+  try{
+    await fetch("https://openrouter.ai/api/v1/models", {method:"GET"});
+    baseline = "ok";
+  }catch(e){ baseline = "gagal"; }
+
+  if(baseline==="gagal"){
+    box.innerHTML = `
+      <div class="rline" style="color:var(--sell);">⛔ Halaman ini tidak bisa mengakses internet sama sekali.</div>
+      <div class="hint" style="margin-top:8px;">Ini konfirmasi kuat bahwa file sedang dibuka di dalam preview/in-app browser yang membatasi jaringan (mis. dalam aplikasi Claude). <b>Download file ini</b>, lalu buka lewat menu Downloads di Chrome/Safari secara langsung — bukan dari tombol "buka" di dalam obrolan.</div>`;
+    return;
+  }
+
+  if(keys.grok){
+    try{
+      grokModelCache = null; // force fresh detection during test
+      const model = await resolveGrokModel(keys);
+      const r = await fetch("https://api.x.ai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${keys.grok}`},body:JSON.stringify({model,messages:[{role:"user",content:"ping"}],max_tokens:5})});
+      if(r.ok){
+        lines.push(`✅ Grok: terhubung, model terdeteksi <b>${model}</b>`);
+      } else {
+        let detail = "";
+        try{ const j = await r.json(); detail = j.error?.message || j.message || ""; }catch(e){}
+        lines.push(`⚠️ Grok: status ${r.status} (model dicoba: ${model})${detail?' — '+detail:''}`);
+      }
+    }catch(e){ lines.push(`⛔ Grok: request diblokir (${e.message})`); }
+  } else {
+    lines.push(`— Grok: key kosong, dilewati`);
+  }
+
+  if(keys.or){
+    try{
+      const r = await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${keys.or}`},body:JSON.stringify({model:document.getElementById('orModelSelect').value,messages:[{role:"user",content:"ping"}],max_tokens:1})});
+      lines.push(r.ok ? `✅ OpenRouter: terhubung dan API key valid` : `⚠️ OpenRouter: server merespons tapi status ${r.status} (cek API key)`);
+    }catch(e){ lines.push(`⛔ OpenRouter: request diblokir (${e.message})`); }
+  } else {
+    lines.push(`— OpenRouter: key kosong, dilewati`);
+  }
+
+  box.innerHTML = lines.map(l=>`<div class="rline">${l}</div>`).join("");
+}
+document.getElementById('testConnBtn').addEventListener('click', testConnection);
+document.getElementById('settingsSideBtn').addEventListener('click',()=>{ loadSettingsToForm(); openModal('settingsModal'); });
+document.getElementById('settingsTopBtn').addEventListener('click',()=>{ loadSettingsToForm(); openModal('settingsModal'); });
+document.getElementById('newChatBtn').addEventListener('click', createNewChat);
+document.getElementById('burgerBtn').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('scrim').classList.add('show');
+});
+document.getElementById('scrim').addEventListener('click', closeSidebarMobile);
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  if(!confirm("Hapus semua data (chat, API key, journal, watchlist)? Tindakan ini tidak dapat dibatalkan.")) return;
+  Object.values(LS).forEach(k=>localStorage.removeItem(k));
+  location.reload();
+});
+
+document.getElementById('sendBtn').addEventListener('click', handleSend);
+const chatInput = document.getElementById('chatInput');
+chatInput.addEventListener('input',()=>autoGrow(chatInput));
+chatInput.addEventListener('keydown',(e)=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); handleSend(); }
+});
+document.getElementById('attachBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change',(e)=>{
+  [...e.target.files].forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{ state.pendingImages.push(reader.result); renderPreviews(); };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = "";
+});
+
+
+/* boot */
+(function init(){
+  EMPTY_STATE_HTML = document.getElementById('emptyState').outerHTML;
+  renderToolsGrid();
+  const uname = localStorage.getItem(LS.username);
+  if(uname) document.getElementById('greetName').innerHTML = `<span class="dot"></span> ${uname}`;
+  updateApiStatus();
+  if(Object.keys(state.chats).length===0) createNewChat();
+  else { renderHistory(); renderMessages(); }
+  refreshTicker();
+  setInterval(refreshTicker, 6000);
+  refreshFeatured();
+  setInterval(refreshFeatured, 2000);
+})();
+</script>
+</body>
+</html>
